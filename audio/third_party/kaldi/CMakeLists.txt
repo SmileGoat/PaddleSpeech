@@ -39,6 +39,7 @@ add_library(kaldi-feat-common
   feat/feature-window.cc
   feat/resample.cc
   feat/mel-computations.cc
+  feat/pitch-functions.cc
   feat/cmvn.cc
 )
 target_link_libraries(kaldi-feat-common PUBLIC kaldi-base kaldi-matrix kaldi-util)

@@ -32,7 +32,7 @@ add_definitions("-DCOMPILE_WITHOUT_OPENFST")
 
 #include(openblas)
 include(pybind)
-set(fc_patch /paddle/mnt/zhouyang/wks2/PaddleSpeech/paddleaudio/fc_patch)
+set(fc_patch /paddle/mnt/zhouyang/wks2/PaddleSpeech/speechx/fc_patch)
 set(OpenBLAS_INSTALL_PREFIX ${fc_patch}/openblas-install)
 link_directories(${OpenBLAS_INSTALL_PREFIX}/lib)
 include_directories(${OpenBLAS_INSTALL_PREFIX}/include)
