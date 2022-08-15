@@ -3,7 +3,6 @@
 {"effects": [["bandpass", "300", "10"]]}
 {"effects": [["bandreject", "300", "10"]]}
 {"effects": [["bass", "-10"]]}
-{"effects": [["bend", ".35,180,.25", ".15,740,.53", "0,-520,.3"]]}
 {"effects": [["biquad", "0.4", "0.2", "0.9", "0.7", "0.2", "0.6"]]}
 {"effects": [["chorus", "0.7", "0.9", "55", "0.4", "0.25", "2", "-t"]]}
 {"effects": [["chorus", "0.6", "0.9", "50", "0.4", "0.25", "2", "-t", "60", "0.32", "0.4", "1.3", "-s"]]}
@@ -22,7 +21,6 @@
 {"effects": [["dcshift", "1.0"]]}
 {"effects": [["dcshift", "-1.0"]]}
 {"effects": [["deemph"]], "input_sample_rate": 44100}
-{"effects": [["delay", "1.5", "+1"]]}
 {"effects": [["dither", "-s"]]}
 {"effects": [["dither", "-S"]]}
 {"effects": [["divide"]]}
@@ -44,8 +42,6 @@
 {"effects": [["fir", "0.0195", "-0.082", "0.234", "0.891", "-0.145", "0.043"]]}
 {"effects": [["fir", "<ASSET_DIR>/sox_effect_test_fir_coeffs.txt"]]}
 {"effects": [["flanger"]]}
-{"effects": [["gain", "-n"]]}
-{"effects": [["gain", "-n", "-3"]]}
 {"effects": [["gain", "-l", "-6"]]}
 {"effects": [["highpass", "-1", "300"]]}
 {"effects": [["highpass", "-2", "300"]]}
@@ -54,14 +50,10 @@
 {"effects": [["lowpass", "-1", "300"]]}
 {"effects": [["lowpass", "-2", "300"]]}
 {"effects": [["mcompand", "0.005,0.1 -47,-40,-34,-34,-17,-33", "100", "0.003,0.05 -47,-40,-34,-34,-17,-33", "400", "0.000625,0.0125 -47,-40,-34,-34,-15,-33", "1600", "0.0001,0.025 -47,-40,-34,-34,-31,-31,-0,-30", "6400", "0,0.025 -38,-31,-28,-28,-0,-25"]], "input_sample_rate": 44100}
-{"effects": [["norm"]]}
 {"effects": [["oops"]]}
 {"effects": [["overdrive"]]}
 {"effects": [["pad"]]}
 {"effects": [["phaser"]]}
-{"effects": [["pitch", "6.48"], ["rate", "8030"]], "output_sample_rate": 8030}
-{"effects": [["pitch", "-6.50"], ["rate", "7970"]], "output_sample_rate": 7970}
-{"effects": [["rate", "4567"]], "output_sample_rate": 4567}
 {"effects": [["remix", "6", "7", "8", "0"]], "num_channels": 8}
 {"effects": [["remix", "1-3,7", "3"]], "num_channels": 8}
 {"effects": [["repeat"]]}
@@ -69,7 +61,6 @@
 {"effects": [["reverse"]]}
 {"effects": [["riaa"]], "input_sample_rate": 44100}
 {"effects": [["silence", "0"]]}
-{"effects": [["sinc", "3k"]]}
 {"effects": [["speed", "1.3"]], "input_sample_rate": 4000, "output_sample_rate": 5200}
 {"effects": [["speed", "0.7"]], "input_sample_rate": 4000, "output_sample_rate": 2800}
 {"effects": [["stat"]]}
@@ -84,5 +75,4 @@
 {"effects": [["tremolo", "300", "50"]]}
 {"effects": [["trim", "0", "0.1"]]}
 {"effects": [["upsample", "2"]], "input_sample_rate": 8000, "output_sample_rate": 16000}
-{"effects": [["vad"]]}
 {"effects": [["vol", "3"]]}
