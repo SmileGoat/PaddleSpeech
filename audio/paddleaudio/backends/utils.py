@@ -1,5 +1,6 @@
 """Defines utilities for switching audio backends"""
 #code is from: https://github.com/pytorch/audio/blob/main/torchaudio/backend/utils.py
+
 import warnings
 from typing import List
 from typing import Optional
@@ -7,9 +8,7 @@ from typing import Optional
 import paddleaudio
 from paddleaudio._internal import module_utils as _mod_utils
 
-from . import no_backend
-from . import soundfile_backend
-from . import sox_io_backend
+from . import no_backend, soundfile_backend, sox_io_backend
 
 __all__ = [
     "list_audio_backends",
@@ -55,7 +54,6 @@ def set_audio_backend(backend: Optional[str]):
 
     for func in ["save", "load", "info"]:
         setattr(paddleaudio, func, getattr(module, func))
-
 
 def _init_audio_backend():
     backends = list_audio_backends()
