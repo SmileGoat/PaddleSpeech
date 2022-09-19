@@ -4,18 +4,24 @@ import itertools
 import tarfile
 import unittest
 from pathlib import Path
-
 import numpy as np
-from parameterized import parameterized
 
+from parameterized import parameterized
 from paddlespeech.audio import sox_effects
-from tests.unit.common_utils import get_sinusoid
-from tests.unit.common_utils import get_wav_data
-from tests.unit.common_utils import load_effects_params
-from tests.unit.common_utils import load_wav
-from tests.unit.common_utils import save_wav
-from tests.unit.common_utils import sox_utils
-from tests.unit.common_utils import TempDirMixin
+from paddlespeech.audio._internal import module_utils as _mod_utils
+from tests.unit.common_utils import (
+    get_sinusoid,
+    get_wav_data,
+    load_wav,
+    save_wav,
+    sox_utils,
+    TempDirMixin,
+    name_func,
+    load_effects_params
+)
+
+if _mod_utils.is_module_available("requests"):
+    import requests
 
 
 class TestSoxEffects(unittest.TestCase):
@@ -29,24 +35,20 @@ class TestSoxEffectsTensor(TempDirMixin, unittest.TestCase):
     """Test suite for `apply_effects_tensor` function"""
 
     @parameterized.expand(
-        list(
-            itertools.product(["float32", "int32"], [8000, 16000], [1, 2, 4, 8],
-                              [True, False])), )
-    def test_apply_no_effect(self, dtype, sample_rate, num_channels,
-                             channels_first):
+        list(itertools.product(["float32", "int32"], [8000, 16000], [1, 2, 4, 8], [True, False])),
+    )
+    def test_apply_no_effect(self, dtype, sample_rate, num_channels, channels_first):
         """`apply_effects_tensor` without effects should return identical data as input"""
-        original = get_wav_data(
-            dtype, num_channels, channels_first=channels_first)
+        original = get_wav_data(dtype, num_channels, channels_first=channels_first)
         expected = original.clone()
-
-        found, output_sample_rate = sox_effects.apply_effects_tensor(
-            expected, sample_rate, [], channels_first)
+        
+        found, output_sample_rate = sox_effects.apply_effects_tensor(expected, sample_rate, [], channels_first)
 
         assert (output_sample_rate == sample_rate)
         # SoxEffect should not alter the input Tensor object
         #self.assertEqual(original, expected)
         np.testing.assert_array_almost_equal(original.numpy(), expected.numpy())
-
+        
         # SoxEffect should not return the same Tensor object
         assert expected is not found
         # Returned Tensor should equal to the input Tensor
@@ -67,18 +69,12 @@ class TestSoxEffectsTensor(TempDirMixin, unittest.TestCase):
         input_path = self.get_temp_path("input.wav")
         reference_path = self.get_temp_path("reference.wav")
 
-        original = get_sinusoid(
-            frequency=800,
-            sample_rate=input_sr,
-            n_channels=num_channels,
-            dtype="float32")
+        original = get_sinusoid(frequency=800, sample_rate=input_sr, n_channels=num_channels, dtype="float32")
         save_wav(input_path, original, input_sr)
-        sox_utils.run_sox_effect(
-            input_path, reference_path, effects, output_sample_rate=output_sr)
+        sox_utils.run_sox_effect(input_path, reference_path, effects, output_sample_rate=output_sr)
 
         expected, expected_sr = load_wav(reference_path)
-        found, sr = sox_effects.apply_effects_tensor(original, input_sr,
-                                                     effects)
+        found, sr = sox_effects.apply_effects_tensor(original, input_sr, effects)
 
         assert sr == expected_sr
         #self.assertEqual(expected, found)
@@ -94,19 +90,20 @@ class TestSoxEffectsFile(TempDirMixin, unittest.TestCase):
                 ["float32", "int32"],
                 [8000, 16000],
                 [1, 2, 4, 8],
-                [False, True], )),
+                [False, True],
+            )
+        ),
         #name_func=name_func,
     )
-    def test_apply_no_effect(self, dtype, sample_rate, num_channels,
-                             channels_first):
+    def test_apply_no_effect(self, dtype, sample_rate, num_channels, channels_first):
         """`apply_effects_file` without effects should return identical data as input"""
         path = self.get_temp_path("input.wav")
-        expected = get_wav_data(
-            dtype, num_channels, channels_first=channels_first)
+        expected = get_wav_data(dtype, num_channels, channels_first=channels_first)
         save_wav(path, expected, sample_rate, channels_first=channels_first)
 
         found, output_sample_rate = sox_effects.apply_effects_file(
-            path, [], normalize=False, channels_first=channels_first)
+            path, [], normalize=False, channels_first=channels_first
+        )
 
         assert output_sample_rate == sample_rate
         #self.assertEqual(expected, found)
@@ -129,16 +126,15 @@ class TestSoxEffectsFile(TempDirMixin, unittest.TestCase):
         reference_path = self.get_temp_path("reference.wav")
         data = get_wav_data(dtype, num_channels, channels_first=channels_first)
         save_wav(input_path, data, input_sr, channels_first=channels_first)
-        sox_utils.run_sox_effect(
-            input_path, reference_path, effects, output_sample_rate=output_sr)
+        sox_utils.run_sox_effect(input_path, reference_path, effects, output_sample_rate=output_sr)
 
         expected, expected_sr = load_wav(reference_path)
-        found, sr = sox_effects.apply_effects_file(
-            input_path, effects, normalize=False, channels_first=channels_first)
+        found, sr = sox_effects.apply_effects_file(input_path, effects, normalize=False, channels_first=channels_first)
 
         assert sr == expected_sr
         #self.assertEqual(found, expected)
         np.testing.assert_array_almost_equal(expected.numpy(), found.numpy())
+
 
     def test_apply_effects_path(self):
         """`apply_effects_file` should return identical data as sox command when file path is given as a Path Object"""
@@ -153,15 +149,12 @@ class TestSoxEffectsFile(TempDirMixin, unittest.TestCase):
         reference_path = self.get_temp_path("reference.wav")
         data = get_wav_data(dtype, num_channels, channels_first=channels_first)
         save_wav(input_path, data, input_sr, channels_first=channels_first)
-        sox_utils.run_sox_effect(
-            input_path, reference_path, effects, output_sample_rate=output_sr)
+        sox_utils.run_sox_effect(input_path, reference_path, effects, output_sample_rate=output_sr)
 
         expected, expected_sr = load_wav(reference_path)
         found, sr = sox_effects.apply_effects_file(
-            Path(input_path),
-            effects,
-            normalize=False,
-            channels_first=channels_first)
+            Path(input_path), effects, normalize=False, channels_first=channels_first
+        )
 
         assert sr == expected_sr
         #self.assertEqual(found, expected)
@@ -172,10 +165,13 @@ class TestFileFormats(TempDirMixin, unittest.TestCase):
     """`apply_effects_file` gives the same result as sox on various file formats"""
 
     @parameterized.expand(
-        list(itertools.product(
-            ["float32", "int32"],
-            [8000, 16000],
-            [1, 2], )),
+        list(
+            itertools.product(
+                ["float32", "int32"],
+                [8000, 16000],
+                [1, 2],
+            )
+        ),
         #name_func=lambda f, _, p: f'{f.__name__}_{"_".join(str(arg) for arg in p.args)}',
     )
     def test_wav(self, dtype, sample_rate, num_channels):
@@ -190,8 +186,7 @@ class TestFileFormats(TempDirMixin, unittest.TestCase):
         sox_utils.run_sox_effect(input_path, reference_path, effects)
 
         expected, expected_sr = load_wav(reference_path)
-        found, sr = sox_effects.apply_effects_file(
-            input_path, effects, normalize=False, channels_first=channels_first)
+        found, sr = sox_effects.apply_effects_file(input_path, effects, normalize=False, channels_first=channels_first)
 
         assert sr == expected_sr
         #self.assertEqual(found, expected)
@@ -199,66 +194,68 @@ class TestFileFormats(TempDirMixin, unittest.TestCase):
 
     #not support now
     #@parameterized.expand(
-    #list(
-    #itertools.product(
-    #[8000, 16000],
-    #[1, 2],
-    #)
-    #),
-    ##name_func=lambda f, _, p: f'{f.__name__}_{"_".join(str(arg) for arg in p.args)}',
+        #list(
+            #itertools.product(
+                #[8000, 16000],
+                #[1, 2],
+            #)
+        #),
+        ##name_func=lambda f, _, p: f'{f.__name__}_{"_".join(str(arg) for arg in p.args)}',
     #)
     #def test_flac(self, sample_rate, num_channels):
-    #"""`apply_effects_file` works on various flac format"""
-    #channels_first = True
-    #effects = [["band", "300", "10"]]
+        #"""`apply_effects_file` works on various flac format"""
+        #channels_first = True
+        #effects = [["band", "300", "10"]]
 
-    #input_path = self.get_temp_path("input.flac")
-    #reference_path = self.get_temp_path("reference.wav")
-    #sox_utils.gen_audio_file(input_path, sample_rate, num_channels)
-    #sox_utils.run_sox_effect(input_path, reference_path, effects, output_bitdepth=32)
+        #input_path = self.get_temp_path("input.flac")
+        #reference_path = self.get_temp_path("reference.wav")
+        #sox_utils.gen_audio_file(input_path, sample_rate, num_channels)
+        #sox_utils.run_sox_effect(input_path, reference_path, effects, output_bitdepth=32)
 
-    #expected, expected_sr = load_wav(reference_path)
-    #found, sr = sox_effects.apply_effects_file(input_path, effects, channels_first=channels_first)
-    #save_wav(self.get_temp_path("result.wav"), found, sr, channels_first=channels_first)
+        #expected, expected_sr = load_wav(reference_path)
+        #found, sr = sox_effects.apply_effects_file(input_path, effects, channels_first=channels_first)
+        #save_wav(self.get_temp_path("result.wav"), found, sr, channels_first=channels_first)
 
-    #assert sr == expected_sr
-    ##self.assertEqual(found, expected)
-    #np.testing.assert_array_almost_equal(found.numpy(), expected.numpy())
+        #assert sr == expected_sr
+        ##self.assertEqual(found, expected)
+        #np.testing.assert_array_almost_equal(found.numpy(), expected.numpy())
 
     #@parameterized.expand(
-    #list(
-    #itertools.product(
-    #[8000, 16000],
-    #[1, 2],
-    #)
-    #),
-    ##name_func=lambda f, _, p: f'{f.__name__}_{"_".join(str(arg) for arg in p.args)}',
+        #list(
+            #itertools.product(
+                #[8000, 16000],
+                #[1, 2],
+            #)
+        #),
+        ##name_func=lambda f, _, p: f'{f.__name__}_{"_".join(str(arg) for arg in p.args)}',
     #)
     #def test_vorbis(self, sample_rate, num_channels):
-    #"""`apply_effects_file` works on various vorbis format"""
-    #channels_first = True
-    #effects = [["band", "300", "10"]]
+        #"""`apply_effects_file` works on various vorbis format"""
+        #channels_first = True
+        #effects = [["band", "300", "10"]]
 
-    #input_path = self.get_temp_path("input.vorbis")
-    #reference_path = self.get_temp_path("reference.wav")
-    #sox_utils.gen_audio_file(input_path, sample_rate, num_channels)
-    #sox_utils.run_sox_effect(input_path, reference_path, effects, output_bitdepth=32)
+        #input_path = self.get_temp_path("input.vorbis")
+        #reference_path = self.get_temp_path("reference.wav")
+        #sox_utils.gen_audio_file(input_path, sample_rate, num_channels)
+        #sox_utils.run_sox_effect(input_path, reference_path, effects, output_bitdepth=32)
 
-    #expected, expected_sr = load_wav(reference_path)
-    #found, sr = sox_effects.apply_effects_file(input_path, effects, channels_first=channels_first)
-    #save_wav(self.get_temp_path("result.wav"), found, sr, channels_first=channels_first)
+        #expected, expected_sr = load_wav(reference_path)
+        #found, sr = sox_effects.apply_effects_file(input_path, effects, channels_first=channels_first)
+        #save_wav(self.get_temp_path("result.wav"), found, sr, channels_first=channels_first)
 
-    #assert sr == expected_sr
-    ##self.assertEqual(found, expected)
-    #np.testing.assert_array_almost_equal(found.numpy(), expected.numpy())
+        #assert sr == expected_sr
+        ##self.assertEqual(found, expected)
+        #np.testing.assert_array_almost_equal(found.numpy(), expected.numpy())
 
 
-    #@skipIfNoExec("sox")
-    #@skipIfNoSox
+#@skipIfNoExec("sox")
+#@skipIfNoSox
 class TestFileObject(TempDirMixin, unittest.TestCase):
-    @parameterized.expand([
-        ("wav", None),
-    ])
+    @parameterized.expand(
+        [
+            ("wav", None),
+        ]
+    )
     def test_fileobj(self, ext, compression):
         """Applying effects via file object works"""
         sample_rate = 16000
@@ -271,25 +268,21 @@ class TestFileObject(TempDirMixin, unittest.TestCase):
         data = get_wav_data("int32", 2, channels_first=channels_first)
         save_wav(input_path, data, sample_rate, channels_first=channels_first)
 
-        sox_utils.run_sox_effect(
-            input_path, reference_path, effects, output_bitdepth=32)
+        sox_utils.run_sox_effect(input_path, reference_path, effects, output_bitdepth=32)
         expected, expected_sr = load_wav(reference_path)
 
         with open(input_path, "rb") as fileobj:
-            found, sr = sox_effects.apply_effects_file(
-                fileobj, effects, channels_first=channels_first)
-        save_wav(
-            self.get_temp_path("result.wav"),
-            found,
-            sr,
-            channels_first=channels_first)
+            found, sr = sox_effects.apply_effects_file(fileobj, effects, channels_first=channels_first)
+        save_wav(self.get_temp_path("result.wav"), found, sr, channels_first=channels_first)
         assert sr == expected_sr
         #self.assertEqual(found, expected)
         np.testing.assert_array_almost_equal(found.numpy(), expected.numpy())
 
-    @parameterized.expand([
-        ("wav", None),
-    ])
+    @parameterized.expand(
+        [
+            ("wav", None),
+        ]
+    )
     def test_bytesio(self, ext, compression):
         """Applying effects via BytesIO object works"""
         sample_rate = 16000
@@ -301,19 +294,13 @@ class TestFileObject(TempDirMixin, unittest.TestCase):
         #sox_utils.gen_audio_file(input_path, sample_rate, num_channels=2, compression=compression)
         data = get_wav_data("int32", 2, channels_first=channels_first)
         save_wav(input_path, data, sample_rate, channels_first=channels_first)
-        sox_utils.run_sox_effect(
-            input_path, reference_path, effects, output_bitdepth=32)
+        sox_utils.run_sox_effect(input_path, reference_path, effects, output_bitdepth=32)
         expected, expected_sr = load_wav(reference_path)
 
         with open(input_path, "rb") as file_:
             fileobj = io.BytesIO(file_.read())
-        found, sr = sox_effects.apply_effects_file(
-            fileobj, effects, channels_first=channels_first)
-        save_wav(
-            self.get_temp_path("result.wav"),
-            found,
-            sr,
-            channels_first=channels_first)
+        found, sr = sox_effects.apply_effects_file(fileobj, effects, channels_first=channels_first)
+        save_wav(self.get_temp_path("result.wav"), found, sr, channels_first=channels_first)
         assert sr == expected_sr
         #self.assertEqual(found, expected)
         print("found")
@@ -322,9 +309,11 @@ class TestFileObject(TempDirMixin, unittest.TestCase):
         print(expected)
         np.testing.assert_array_almost_equal(found.numpy(), expected.numpy())
 
-    @parameterized.expand([
-        ("wav", None),
-    ])
+    @parameterized.expand(
+        [
+            ("wav", None),
+        ]
+    )
     def test_tarfile(self, ext, compression):
         """Applying effects to compressed audio via file-like file works"""
         sample_rate = 16000
@@ -337,24 +326,18 @@ class TestFileObject(TempDirMixin, unittest.TestCase):
         archive_path = self.get_temp_path("archive.tar.gz")
         data = get_wav_data("int32", 2, channels_first=channels_first)
         save_wav(input_path, data, sample_rate, channels_first=channels_first)
-
-        #       sox_utils.gen_audio_file(input_path, sample_rate, num_channels=2, compression=compression)
-        sox_utils.run_sox_effect(
-            input_path, reference_path, effects, output_bitdepth=32)
-
+      
+ #       sox_utils.gen_audio_file(input_path, sample_rate, num_channels=2, compression=compression)
+        sox_utils.run_sox_effect(input_path, reference_path, effects, output_bitdepth=32)
+  
         expected, expected_sr = load_wav(reference_path)
 
         with tarfile.TarFile(archive_path, "w") as tarobj:
             tarobj.add(input_path, arcname=audio_file)
         with tarfile.TarFile(archive_path, "r") as tarobj:
             fileobj = tarobj.extractfile(audio_file)
-            found, sr = sox_effects.apply_effects_file(
-                fileobj, effects, channels_first=channels_first)
-        save_wav(
-            self.get_temp_path("result.wav"),
-            found,
-            sr,
-            channels_first=channels_first)
+            found, sr = sox_effects.apply_effects_file(fileobj, effects, channels_first=channels_first)
+        save_wav(self.get_temp_path("result.wav"), found, sr, channels_first=channels_first)
         assert sr == expected_sr
         #self.assertEqual(found, expected)
         np.testing.assert_array_almost_equal(found.numpy(), expected.numpy())
