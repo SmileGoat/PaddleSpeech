@@ -1,4 +1,4 @@
-# Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
+# Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,17 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from . import _extension
-from . import compliance
-from . import datasets
-from . import features
-from . import functional
-from . import io
-from . import metric
-from . import sox_effects
-from . import streamdata
-from . import text
-from . import transform
-from .backends import load
-from .backends import save
+from . import kaldi
+from . import librosa

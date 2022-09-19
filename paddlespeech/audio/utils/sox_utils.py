@@ -1,11 +1,7 @@
-from typing import Dict
-from typing import List
+from typing import Dict, List
 
-from paddlespeech.audio import _paddleaudio
 from paddlespeech.audio._internal import module_utils as _mod_utils
-
-#Taken form https://github.com/pytorch/audio/blob/main/torchaudio/utils/sox_utils.py with modification.
-
+from paddlespeech.audio import _paddleaudio
 
 @_mod_utils.requires_sox()
 def set_seed(seed: int):

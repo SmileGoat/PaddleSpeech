@@ -310,7 +310,7 @@ def paddle_audio(key, data):
         fname = os.path.join(dirname, f"file.{extension}")
         with open(fname, "wb") as stream:
             stream.write(data)
-        return paddleaudio.backends.soundfile_load(fname)
+        return paddlespeech.audio.load(fname)
 
 
 ################################################################
