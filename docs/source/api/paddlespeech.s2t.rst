@@ -19,4 +19,5 @@ Subpackages
    paddlespeech.s2t.models
    paddlespeech.s2t.modules
    paddlespeech.s2t.training
+   paddlespeech.s2t.transform
    paddlespeech.s2t.utils

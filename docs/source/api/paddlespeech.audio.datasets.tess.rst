@@ -1,7 +1,7 @@
-paddlespeech.audio.sox\_effects package
+paddlespeech.audio.datasets.tess module
 =======================================
 
-.. automodule:: paddlespeech.audio.sox_effects
+.. automodule:: paddlespeech.audio.datasets.tess
    :members:
    :undoc-members:
    :show-inheritance:

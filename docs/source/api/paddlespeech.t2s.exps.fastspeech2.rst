@@ -16,4 +16,3 @@ Submodules
    paddlespeech.t2s.exps.fastspeech2.normalize
    paddlespeech.t2s.exps.fastspeech2.preprocess
    paddlespeech.t2s.exps.fastspeech2.train
-   paddlespeech.t2s.exps.fastspeech2.vc2_infer

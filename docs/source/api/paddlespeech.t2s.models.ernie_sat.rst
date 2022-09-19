@@ -12,5 +12,4 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   paddlespeech.t2s.models.ernie_sat.ernie_sat
-   paddlespeech.t2s.models.ernie_sat.ernie_sat_updater
+   paddlespeech.t2s.models.ernie_sat.mlm

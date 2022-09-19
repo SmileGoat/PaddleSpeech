@@ -19,5 +19,4 @@ Submodules
    paddlespeech.t2s.datasets.get_feats
    paddlespeech.t2s.datasets.ljspeech
    paddlespeech.t2s.datasets.preprocess_utils
-   paddlespeech.t2s.datasets.sampler
    paddlespeech.t2s.datasets.vocoder_batch_fn
