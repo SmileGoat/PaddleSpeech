@@ -2,18 +2,23 @@
 // Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 
 #include "paddlespeech/audio/src/pybind/kaldi/kaldi_feature.h"
+#include "paddlespeech/audio/third_party/kaldi/feat/feature-fbank.h"
+
+#ifdef INCLUDE_SOX
 #include "paddlespeech/audio/src/pybind/sox/io.h"
 #include "paddlespeech/audio/src/pybind/sox/effects.h"
-#include "paddlespeech/audio/third_party/kaldi/feat/feature-fbank.h"
+#endif
 
 #include <pybind11/stl.h>
 #include <pybind11/pybind11.h>
 
 // `tl::optional` 
+#ifdef INCLUDE_SOX
 namespace pybind11 { namespace detail {
    template <typename T>
    struct type_caster<tl::optional<T>> : optional_caster<tl::optional<T>> {};
 }}
+#endif
 
 PYBIND11_MODULE(_paddleaudio, m) {
 #ifdef INCLUDE_SOX

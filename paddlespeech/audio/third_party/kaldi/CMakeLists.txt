@@ -18,6 +18,9 @@ add_definitions("-DCOMPILE_WITHOUT_OPENFST")
 #     )
 # endfunction()
 
+
+
+
 # kaldi-base
 add_library(kaldi-base STATIC
   base/io-funcs.cc
@@ -28,13 +31,19 @@ add_library(kaldi-base STATIC
 )
 target_include_directories(kaldi-base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-
 # kaldi-matrix
 if (MSVC OR APPLE)
     find_package(GFortranLibs REQUIRED)
     include(FortranCInterface)
     include(FindGFortranLibs REQUIRED)
 endif()
+
+if (APPLE)
+    find_package(GFortranLibs REQUIRED)
+    include(FortranCInterface)
+    include(FindGFortranLibs REQUIRED)
+endif()
+
 
 add_library(kaldi-matrix STATIC
   matrix/compressed-matrix.cc
@@ -50,8 +59,12 @@ add_library(kaldi-matrix STATIC
   matrix/tp-matrix.cc
 )
 target_include_directories(kaldi-matrix PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(kaldi-matrix PUBLIC kaldi-base libopenblas ${GFORTRAN_LIBRARIES_DIR}/libgfortran.a)
 
+if (NOT MSVC)
+    target_link_libraries(kaldi-matrix PUBLIC kaldi-base libopenblas ${GFORTRAN_LIBRARIES_DIR}/libgfortran.a)
+else()
+    target_link_libraries(kaldi-matrix PUBLIC kaldi-base openblas)
+endif()
 
 # kaldi-util
 add_library(kaldi-util STATIC
@@ -112,11 +125,14 @@ add_library(libkaldi INTERFACE)
 add_dependencies(libkaldi kaldi-base kaldi-matrix kaldi-util kaldi-feat-common kaldi-mfcc kaldi-fbank)
 target_include_directories(libkaldi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if (MSVC OR APPLE)
+if (APPLE)
     target_link_libraries(libkaldi INTERFACE ${KALDI_LIBRARIES} libopenblas ${GFORTRAN_LIBRARIES_DIR}/libgfortran.a)
+endif()
+
+if (MSVC)
+    target_link_libraries(libkaldi INTERFACE kaldi-base kaldi-matrix kaldi-util kaldi-feat-common kaldi-mfcc kaldi-fbank openblas)
 else()
     target_link_libraries(libkaldi INTERFACE -Wl,--start-group -Wl,--whole-archive ${KALDI_LIBRARIES} libopenblas gfortran -Wl,--no-whole-archive -Wl,--end-group)
 endif()
 
 target_compile_definitions(libkaldi INTERFACE "-DCOMPILE_WITHOUT_OPENFST")
-

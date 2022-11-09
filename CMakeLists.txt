@@ -51,8 +51,12 @@ set(FETCHCONTENT_QUIET off)
 get_filename_component(fc_patch "fc_patch" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 set(FETCHCONTENT_BASE_DIR ${fc_patch})
 
-
 include(openblas)
+
+if (NOT PY_VERSION)
+  set(PY_VERSION 3.7)
+endif()
+set(PYBIND11_PYTHON_VERSION ${PY_VERSION})
 include(pybind)
 
 # packages

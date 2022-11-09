@@ -18,6 +18,7 @@ import paddle
 
 from paddlespeech.audio.kaldi import fbank as fbank
 from paddlespeech.audio.kaldi import pitch as pitch
+import kaldiio
 from kaldiio import ReadHelper
 
 # the groundtruth feats computed in kaldi command below.
@@ -32,26 +33,23 @@ class TestKaldiFbank(unittest.TestCase):
             for key, feat in reader:
                 fbank_groundtruth[key] = feat
 
-        with ReadHelper('ark:testdata/wav.ark') as reader:
-            for key, wav in reader:
-                fbank_feat = fbank(wav)
-                fbank_check = fbank_groundtruth[key]
-                np.testing.assert_array_almost_equal(
-                    fbank_feat, fbank_check, decimal=4)
+        wav_rate, wav = kaldiio.wavio.read_wav('testdata/test.wav')
+        fbank_feat = fbank(wav)
+        fbank_check = fbank_groundtruth['test_wav']
+        np.testing.assert_array_almost_equal(
+            fbank_feat, fbank_check, decimal=4)
 
     def test_pitch(self):
         pitch_groundtruth = {}
         with ReadHelper('ark:testdata/pitch_feat.ark') as reader:
            for key, feat in reader:
                pitch_groundtruth[key] = feat
-
-        with ReadHelper('ark:testdata/wav.ark') as reader:
-            for key, wav in reader:
-                pitch_feat = pitch(wav)
-                pitch_check = pitch_groundtruth[key]
-                np.testing.assert_array_almost_equal(
-                    pitch_feat, pitch_check, decimal=4)
-
+        
+        wav_rate, wav = kaldiio.wavio.read_wav('testdata/test.wav')
+        pitch_feat = pitch(wav)
+        pitch_check = pitch_groundtruth['test_wav']
+        np.testing.assert_array_almost_equal(
+            pitch_feat, pitch_check, decimal=4)
 
 
 if __name__ == '__main__':
