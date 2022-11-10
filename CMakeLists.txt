@@ -13,9 +13,7 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.15.0)
   cmake_policy(SET CMP0092 NEW)
 endif()
 
-
 project(paddlespeech)
-
 
 # check and set CMAKE_CXX_STANDARD
 string(FIND "${CMAKE_CXX_FLAGS}" "-std=c++" env_cxx_standard)
@@ -50,6 +48,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake;${PROJEC
 set(FETCHCONTENT_QUIET off)
 get_filename_component(fc_patch "fc_patch" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 set(FETCHCONTENT_BASE_DIR ${fc_patch})
+set(THIRD_PARTY_PATH ${fc_patch})
 
 include(openblas)
 
