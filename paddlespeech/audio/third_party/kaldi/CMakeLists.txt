@@ -127,9 +127,7 @@ target_include_directories(libkaldi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (APPLE)
     target_link_libraries(libkaldi INTERFACE ${KALDI_LIBRARIES} libopenblas ${GFORTRAN_LIBRARIES_DIR}/libgfortran.a)
-endif()
-
-if (MSVC)
+elseif (MSVC)
     target_link_libraries(libkaldi INTERFACE kaldi-base kaldi-matrix kaldi-util kaldi-feat-common kaldi-mfcc kaldi-fbank openblas)
 else()
     target_link_libraries(libkaldi INTERFACE -Wl,--start-group -Wl,--whole-archive ${KALDI_LIBRARIES} libopenblas gfortran -Wl,--no-whole-archive -Wl,--end-group)
