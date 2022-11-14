@@ -1,4 +1,4 @@
-# Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
+t # Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ if(NOT WIN32)
     set(OPTIONAL_ARGS DYNAMIC_ARCH=1 NUM_THREADS=64)
   endif()
 
-  set(COMMON_ARGS CC=${OPENBLAS_CC} NO_SHARED=1 libs)
+  set(COMMON_ARGS CC=${OPENBLAS_CC} libs)
   ExternalProject_Add(
     OPENBLAS
     GIT_REPOSITORY ${CBLAS_REPOSITORY}
@@ -46,11 +46,11 @@ if(NOT WIN32)
     PREFIX ${CBLAS_PREFIX_DIR}
     INSTALL_DIR ${CBLAS_INSTALL_DIR}
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make -j${NPROC} ${COMMON_ARGS} ${OPTIONAL_ARGS}
-    INSTALL_COMMAND make install NO_SHARED=1 PREFIX=<INSTALL_DIR>
+    INSTALL_COMMAND make install PREFIX=<INSTALL_DIR>
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
     BUILD_BYPRODUCTS ${CBLAS_LIBRARIES})
+    #BUILD_COMMAND make -j${NPROC} ${COMMON_ARGS} ${OPTIONAL_ARGS}
 
     ExternalProject_Get_Property(OPENBLAS INSTALL_DIR)
     set(OpenBLAS_INSTALL_PREFIX ${INSTALL_DIR})

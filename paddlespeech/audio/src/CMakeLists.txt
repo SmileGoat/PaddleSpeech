@@ -2,6 +2,10 @@ if (MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
+if(APPLE)
+set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+endif(APPLE)
+
 ################################################################################
 # libpaddleaudio
 ################################################################################
@@ -93,9 +97,9 @@ define_library(
 )
 
 if (APPLE)
-  set(TORCHAUDIO_LIBRARY libpaddleaudio CACHE INTERNAL "")
+  set(AUDIO_LIBRARY libpaddleaudio CACHE INTERNAL "")
 else()
-  set(TORCHAUDIO_LIBRARY -Wl,--no-as-needed libpaddleaudio -Wl,--as-needed CACHE INTERNAL "")
+  set(AUDIO_LIBRARY -Wl,--no-as-needed libpaddleaudio -Wl,--as-needed CACHE INTERNAL "")
 endif()
 
   ################################################################################
@@ -114,7 +118,7 @@ function(define_extension name sources include_dirs libraries definitions)
   target_link_libraries(
     ${name}
     ${libraries}
-    ${TORCH_PYTHON_LIBRARY}
+    ${PYTHON_LIBRARY}
     ${ADDITIONAL_ITEMS}
     )
   set_target_properties(${name} PROPERTIES PREFIX "")
