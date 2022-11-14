@@ -130,7 +130,7 @@ if (APPLE)
 elseif (MSVC)
     target_link_libraries(libkaldi INTERFACE kaldi-base kaldi-matrix kaldi-util kaldi-feat-common kaldi-mfcc kaldi-fbank openblas)
 else()
-    target_link_libraries(libkaldi INTERFACE -Wl,--start-group -Wl,--whole-archive ${KALDI_LIBRARIES} libopenblas gfortran -Wl,--no-whole-archive -Wl,--end-group)
+    target_link_libraries(libkaldi INTERFACE -Wl,--start-group -Wl,--whole-archive ${KALDI_LIBRARIES} libopenblas.a gfortran -Wl,--no-whole-archive -Wl,--end-group)
 endif()
 
 target_compile_definitions(libkaldi INTERFACE "-DCOMPILE_WITHOUT_OPENFST")
