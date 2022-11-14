@@ -1,4 +1,4 @@
-t # Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
+# Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,7 +50,6 @@ if(NOT WIN32)
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
     BUILD_BYPRODUCTS ${CBLAS_LIBRARIES})
-    #BUILD_COMMAND make -j${NPROC} ${COMMON_ARGS} ${OPTIONAL_ARGS}
 
     ExternalProject_Get_Property(OPENBLAS INSTALL_DIR)
     set(OpenBLAS_INSTALL_PREFIX ${INSTALL_DIR})
@@ -112,5 +111,4 @@ else()
   include_directories(${CBLAS_INC_DIR})
   link_libraries(${CBLAS_LIBRARIES})
 endif()
-
 
