@@ -89,6 +89,7 @@ include(pybind)
 #onnx
 if(WITH_ONNX)
     add_definitions(-DUSE_ONNX)
+    include(onnx)
 endif()
 
 # gtest
@@ -97,12 +98,17 @@ if(WITH_TESTING)
 endif()
 
 # fastdeploy
-include(fastdeploy)
+#include(fastdeploy)
 
 if(WITH_ASR)
     # openfst
-    include(openfst)
-    add_dependencies(openfst gflags extern_glog)
+    #include(openfst)
+    #add_dependencies(openfst gflags extern_glog)
+    set(OpenFST_SRC /paddle/ssd1/zhouyang28/wks/PaddleSpeech/runtime/fc_patch/openfst)
+    link_directories(${OpenFST_SRC}/lib)
+    #add_library(fst SHARED IMPORTED)
+    #set_property(TARGET fst PROPERTY IMPORTED_LOCATION ${OpenFST_SRC}/lib/libfst.so)
+    include_directories(${OpenFST_SRC}/include)
 endif()
 
 ###############################################################################

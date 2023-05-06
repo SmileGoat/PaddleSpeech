@@ -23,6 +23,7 @@
 DECLARE_string(word_symbol_table);
 DECLARE_string(graph_path);
 DECLARE_int32(max_active);
+DECLARE_int32(min_active);
 DECLARE_double(beam);
 DECLARE_double(lattice_beam);
 DECLARE_int32(nbest);
@@ -52,6 +53,7 @@ struct TLGDecoderOptions {
         }
 
         decoder_opts.opts.max_active = FLAGS_max_active;
+        decoder_opts.opts.min_active = FLAGS_min_active;
         decoder_opts.opts.beam = FLAGS_beam;
         decoder_opts.opts.lattice_beam = FLAGS_lattice_beam;
         decoder_opts.nbest = FLAGS_nbest;

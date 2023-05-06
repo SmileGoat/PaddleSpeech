@@ -45,7 +45,8 @@ DEFINE_bool(with_onnx_model, false, "True mean the model path is onnx model path
 DEFINE_double(acoustic_scale, 1.0, "acoustic scale");
 DEFINE_string(graph_path, "", "decoder graph");
 DEFINE_string(word_symbol_table, "", "word symbol table");
-DEFINE_int32(max_active, 7500, "max active");
+DEFINE_int32(max_active, 7000, "max active");
+DEFINE_int32(min_active, 200, "min active");
 DEFINE_double(beam, 15.0, "decoder beam");
 DEFINE_double(lattice_beam, 7.5, "decoder beam");
 DEFINE_double(blank_threshold, 0.98, "blank skip threshold");

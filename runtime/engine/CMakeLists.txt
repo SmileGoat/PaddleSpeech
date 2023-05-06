@@ -12,11 +12,11 @@ if(WITH_ASR)
 endif()
 
 if(WITH_CLS)
-    add_subdirectory(audio_classification)
+#    add_subdirectory(audio_classification)
 endif()
 
 if(WITH_VAD)
-    add_subdirectory(vad)
+#    add_subdirectory(vad)
 endif()
 
-add_subdirectory(codelab)
+#add_subdirectory(codelab)
