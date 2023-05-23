@@ -65,14 +65,15 @@ class LatticeFasterOnlineDecoderTpl:
   // This version of the constructor does not take ownership of
   // 'fst'.
   LatticeFasterOnlineDecoderTpl(const FST &fst,
+                                const FST &context_fst,
                                 const LatticeFasterDecoderConfig &config):
-      LatticeFasterDecoderTpl<FST, Token>(fst, config) { }
+      LatticeFasterDecoderTpl<FST, Token>(fst, context_fst, config) { }
 
   // This version of the initializer takes ownership of 'fst', and will delete
   // it when this object is destroyed.
   LatticeFasterOnlineDecoderTpl(const LatticeFasterDecoderConfig &config,
-                                FST *fst):
-      LatticeFasterDecoderTpl<FST, Token>(config, fst) { }
+                                FST *fst, FST* context_fst):
+      LatticeFasterDecoderTpl<FST, Token>(config, fst, context_fst) { }
 
 
   struct BestPathIterator {

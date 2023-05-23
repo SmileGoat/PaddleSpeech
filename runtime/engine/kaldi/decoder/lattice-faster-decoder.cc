@@ -28,8 +28,9 @@ namespace kaldi {
 // instantiate this class once for each thing you have to decode.
 template <typename FST, typename Token>
 LatticeFasterDecoderTpl<FST, Token>::LatticeFasterDecoderTpl(
-    const FST &fst, const LatticeFasterDecoderConfig &config)
+    const FST &fst, const FST &context_fst, const LatticeFasterDecoderConfig &config)
     : fst_(&fst),
+      context_fst_(&context_fst),
       delete_fst_(false),
       config_(config),
       num_toks_(0),
@@ -37,12 +38,19 @@ LatticeFasterDecoderTpl<FST, Token>::LatticeFasterDecoderTpl(
       forward_link_pool_(config.memory_pool_links_block_size) {
   config.Check();
   toks_.SetSize(1000);  // just so on the first frame we do something reasonable.
+  std::string word_symbol_tabel_path = "/paddle/ssd1/zhouyang28/wks/PaddleSpeech/runtime/examples/u2pp_ol/wenetspeech/data/lang_test/words.txt";
+  word_symbol_table_.reset(
+        fst::SymbolTable::ReadText(word_symbol_tabel_path));
+  std::string word_symbol_tabel_path2 = "/paddle/ssd1/zhouyang28/wks/PaddleSpeech/runtime/examples/u2pp_ol/wenetspeech/data/local/lang/tokens.txt";
+  word_symbol_table2_.reset(
+        fst::SymbolTable::ReadText(word_symbol_tabel_path2));
 }
 
 template <typename FST, typename Token>
 LatticeFasterDecoderTpl<FST, Token>::LatticeFasterDecoderTpl(
-    const LatticeFasterDecoderConfig &config, FST *fst)
+    const LatticeFasterDecoderConfig &config, FST *fst, FST* context_fst)
     : fst_(fst),
+      context_fst_(context_fst),
       delete_fst_(true),
       config_(config),
       num_toks_(0),
@@ -73,7 +81,7 @@ void LatticeFasterDecoderTpl<FST, Token>::InitDecoding() {
   KALDI_ASSERT(start_state != fst::kNoStateId);
   active_toks_.resize(1);
   Token *start_tok =
-      new (token_pool_.Allocate()) Token(0.0, 0.0, NULL, NULL, NULL);
+      new (token_pool_.Allocate()) Token(0.0, 0.0, NULL, NULL, NULL, 0);
   active_toks_[0].toks = start_tok;
   toks_.Insert(start_state, start_tok);
   num_toks_++;
@@ -108,6 +116,40 @@ bool LatticeFasterDecoderTpl<FST, Token>::GetBestPath(Lattice *olat,
   return (olat->NumStates() != 0);
 }
 
+template <typename FST, typename Token>
+void LatticeFasterDecoderTpl<FST, Token>::PrintBestPathInfo() const {
+  int frame = NumFramesDecoded();
+  Token* tok = active_toks_[frame].toks; 
+  Token* best_token = tok;
+  for (tok = tok->next; tok != NULL; tok = tok->next) {
+    if (tok->tot_cost < best_token->tot_cost) {
+      best_token = tok;
+    }
+  }
+  
+  //std::vector<int> context_ids;
+  //std::vector<int> output;
+  for (Token* bp = best_token; bp != NULL; bp = bp->backpointer) {
+   // context_ids.push_back(bp->context_state_id);
+    if (bp->backpointer != NULL) {
+      for (ForwardLinkT* fl = bp->backpointer->links; fl != NULL; fl = fl->next) {
+        if (fl->next_tok == bp) {
+   //       output.push_back(fl->olabel);
+          LOG(INFO) << "id & olabel " << bp->context_state_id << " " << word_symbol_table_->Find(fl->olabel); 
+          break;
+        }
+      }
+    }
+  }
+  
+  //std::reverse(context_ids.begin(), context_id.end());
+  //std::reverse(output.begin(), output.end());
+  //LOG(INFO) << "context id info:";
+  //for (auto x: output) {
+    
+  //}
+  
+}
 
 // Outputs an FST corresponding to the raw, state-level lattice
 template <typename FST, typename Token>
@@ -119,6 +161,7 @@ bool LatticeFasterDecoderTpl<FST, Token>::GetRawLattice(
   typedef Arc::Weight Weight;
   typedef Arc::Label Label;
 
+  PrintBestPathInfo();
   // Note: you can't use the old interface (Decode()) if you want to
   // get the lattice with use_final_probs = false.  You'd have to do
   // InitDecoding() and then AdvanceDecoding().
@@ -266,13 +309,14 @@ LatticeFasterDecoderTpl<FST, Token>::FindOrAddToken(
   KALDI_ASSERT(frame_plus_one < active_toks_.size());
   Token *&toks = active_toks_[frame_plus_one].toks;
   Elem *e_found = toks_.Insert(state, NULL);
+  
   if (e_found->val == NULL) {  // no such token presently.
     const BaseFloat extra_cost = 0.0;
     // tokens on the currently final frame have zero extra_cost
     // as any of them could end up
     // on the winning path.
     Token *new_tok = new (token_pool_.Allocate())
-        Token(tot_cost, extra_cost, NULL, toks, backpointer);
+        Token(tot_cost, extra_cost, NULL, toks, backpointer, 0);
     // NULL: no forward links yet
     toks = new_tok;
     num_toks_++;
@@ -620,10 +664,11 @@ void LatticeFasterDecoderTpl<FST, Token>::AdvanceDecoding(DecodableInterface *de
                                      NumFramesDecoded() + max_num_frames);
   while (NumFramesDecoded() < target_frames_decoded) {
     if (NumFramesDecoded() % config_.prune_interval == 0) {
-      PruneActiveTokens(config_.lattice_beam * config_.prune_scale);
+      //PruneActiveTokens(config_.lattice_beam * config_.prune_scale);
     }
     BaseFloat cost_cutoff = ProcessEmitting(decodable);
     ProcessNonemitting(cost_cutoff);
+  if (active_toks_.size() >= 2) LOG(INFO) << "frame1T " << 1 << ": " << (active_toks_[1].toks == NULL);
   }
 }
 
@@ -720,12 +765,56 @@ BaseFloat LatticeFasterDecoderTpl<FST, Token>::GetCutoff(Elem *list_head, size_t
 }
 
 template <typename FST, typename Token>
+void LatticeFasterDecoderTpl<FST, Token>::ProcessContextBias(Token* backpointer, 
+                                                             ForwardLinkT* link,
+                                                             fst::StdArc::Label olabel,
+                                                             bool* changed) {
+  if (context_fst_ != NULL) {
+      StateId state_id = backpointer->context_state_id;
+      if (olabel == 0) {
+        link->next_tok->context_state_id = state_id;
+        return;
+      }
+      bool match_flag = false;
+      int next_state_id = 0;
+      BaseFloat arc_weight = 0;
+      for (fst::ArcIterator<FST> aiter(*context_fst_, state_id);
+           !aiter.Done(); aiter.Next()) {
+          const Arc &arc = aiter.Value();
+          if (olabel == arc.ilabel) {
+            LOG(INFO) << "bias match: " << word_symbol_table_->Find(arc.ilabel);
+            link->graph_cost += arc.weight.Value();
+            link->next_tok->tot_cost += arc.weight.Value();
+            link->next_tok->context_state_id = arc.nextstate;
+            LOG(INFO) << "match cost: " << link->next_tok->tot_cost << " " << arc.nextstate << " " << link->next_tok;
+            *changed = true;
+            match_flag = true;
+          }
+          if (arc.ilabel == 0) {
+            next_state_id = arc.nextstate;
+            arc_weight = arc.weight.Value();
+          }
+      } 
+      if (!match_flag && *changed == true) {
+        link->graph_cost += arc_weight;
+        link->next_tok->tot_cost += arc_weight;
+        link->next_tok->context_state_id = next_state_id;
+        LOG(INFO) << "return 0: " << link->next_tok->tot_cost << " " << next_state_id << " " << link->next_tok;
+      }
+  }
+  return;
+}
+
+
+template <typename FST, typename Token>
 BaseFloat LatticeFasterDecoderTpl<FST, Token>::ProcessEmitting(
     DecodableInterface *decodable) {
   KALDI_ASSERT(active_toks_.size() > 0);
   int32 frame = active_toks_.size() - 1; // frame is the frame-index
                                          // (zero-based) used to get likelihoods
                                          // from the decodable object.
+  LOG(INFO) << "ProcessEmitting: " << frame;
+  if (frame >= 1) LOG(INFO) << "frameT " << frame - 1 << ": " << (active_toks_[frame - 1].toks == NULL);
   active_toks_.resize(active_toks_.size() + 1);
 
   Elem *final_toks = toks_.Clear(); // analogous to swapping prev_toks_ / cur_toks_
@@ -759,6 +848,7 @@ BaseFloat LatticeFasterDecoderTpl<FST, Token>::ProcessEmitting(
          aiter.Next()) {
       const Arc &arc = aiter.Value();
       if (arc.ilabel != 0) {  // propagate..
+      // arc.weight.Value() - decodable->Log()
         BaseFloat new_weight = arc.weight.Value() + cost_offset -
             decodable->LogLikelihood(frame, arc.ilabel) + tok->tot_cost;
         if (new_weight + adaptive_beam < next_cutoff)
@@ -776,10 +866,19 @@ BaseFloat LatticeFasterDecoderTpl<FST, Token>::ProcessEmitting(
   // the tokens are now owned here, in final_toks, and the hash is empty.
   // 'owned' is a complex thing here; the point is we need to call DeleteElem
   // on each elem 'e' to let toks_ know we're done with them.
+    
+  LOG(INFO) << frame << " ac_cost 来: " << cost_offset - decodable->LogLikelihood(frame, 2182);
+  LOG(INFO) << frame << " ac_cost 萘: " << cost_offset - decodable->LogLikelihood(frame, 4109);
+  LOG(INFO) << frame << " ac_cost 就: " << cost_offset - decodable->LogLikelihood(frame, 1288);
+  LOG(INFO) << frame << " ac_cost 啶: " << cost_offset - decodable->LogLikelihood(frame, 801);
+  LOG(INFO) << frame << " ac_cost 算: " << cost_offset - decodable->LogLikelihood(frame, 3521);
+  LOG(INFO) << frame << " ac_cost 酸: " << cost_offset - decodable->LogLikelihood(frame, 4916);
+
   for (Elem *e = final_toks, *e_tail; e != NULL; e = e_tail) {
     // loop this way because we delete "e" as we go.
     StateId state = e->key;
     Token *tok = e->val;
+    LOG(INFO) << frame << " elem state id: " << tok->context_state_id << " " << cur_cutoff << " " << tok->tot_cost;
     if (tok->tot_cost <= cur_cutoff) {
       for (fst::ArcIterator<FST> aiter(*fst_, state);
            !aiter.Done();
@@ -791,25 +890,31 @@ BaseFloat LatticeFasterDecoderTpl<FST, Token>::ProcessEmitting(
               graph_cost = arc.weight.Value(),
               cur_cost = tok->tot_cost,
               tot_cost = cur_cost + ac_cost + graph_cost;
+          
           if (tot_cost >= next_cutoff) continue;
           else if (tot_cost + adaptive_beam < next_cutoff)
             next_cutoff = tot_cost + adaptive_beam; // prune by best current token
           // Note: the frame indexes into active_toks_ are one-based,
           // hence the + 1.
+    LOG(INFO) << "pass elem state id: " << tok->context_state_id << " " << next_cutoff << " " << tot_cost << " " << ac_cost;
+    LOG(INFO) << "pass ilabel: " << word_symbol_table2_->Find(arc.ilabel) << " " << word_symbol_table_->Find(arc.olabel);
+          bool changed = true;
           Elem *e_next = FindOrAddToken(arc.nextstate,
-                                        frame + 1, tot_cost, tok, NULL);
+                                        frame + 1, tot_cost, tok, &changed);
           // NULL: no change indicator needed
 
           // Add ForwardLink from tok to next_tok (put on head of list tok->links)
           tok->links = new (forward_link_pool_.Allocate())
               ForwardLinkT(e_next->val, arc.ilabel, arc.olabel, graph_cost,
                            ac_cost, tok->links);
+          ProcessContextBias(tok, tok->links, arc.olabel, &changed);
         }
       } // for all arcs
     }
     e_tail = e->tail;
     toks_.Delete(e); // delete Elem
   }
+  
   return next_cutoff;
 }
 
@@ -830,6 +935,41 @@ template <typename FST, typename Token>
 void LatticeFasterDecoderTpl<FST, Token>::ProcessNonemitting(BaseFloat cutoff) {
   KALDI_ASSERT(!active_toks_.empty());
   int32 frame = static_cast<int32>(active_toks_.size()) - 2;
+
+  //if (context_fst_ != NULL && frame != -1) {
+      //int active_size = active_toks_.size();
+      //LOG(INFO) << "frame: " << active_size;
+      //for (Token* token = active_toks_[frame].toks; 
+           //token != NULL; token = token->next) {
+          //// loop token forward link
+          //StateId context_state = token->context_state_id;
+          //if (context_state != 0) LOG(INFO) << "context state id is: " << context_state;
+          //for (ForwardLinkT* link = token->links;
+               //link!= NULL; link = link->next) {
+              //fst::StdArc::Label olabel = link->olabel;
+              //if (olabel == 0) continue;
+              //LOG(INFO) << " olabel: " << word_symbol_table_->Find(olabel);
+              //bool match_flag = false;
+              //for (fst::ArcIterator<FST> aiter(*context_fst_, context_state); 
+                   //!aiter.Done(); aiter.Next()) {
+                  //const Arc &arc = aiter.Value();
+                  //if (olabel == arc.ilabel) {
+                    //LOG(INFO) << "bias match: " << word_symbol_table_->Find(arc.ilabel);
+                    //link->graph_cost += arc.weight.Value();
+                    //link->next_tok->tot_cost += arc.weight.Value();
+                    //link->next_tok->context_state_id = arc.nextstate;
+                    //LOG(INFO) << "match cost: " << link->next_tok->tot_cost; 
+                    //match_flag = true;
+                  //}
+              //}
+              //if (!match_flag) {
+                //// context_fst start id
+                //link->next_tok->context_state_id = 0;
+              //}
+          //}
+      //}
+  //}
+
   // Note: "frame" is the time-index we just processed, or -1 if
   // we are processing the nonemitting transitions before the
   // first frame (called from InitDecoding()).
@@ -853,6 +993,7 @@ void LatticeFasterDecoderTpl<FST, Token>::ProcessNonemitting(BaseFloat cutoff) {
     StateId state = e->key;
     if (fst_->NumInputEpsilons(state) != 0)
       queue_.push_back(e);
+    LOG(INFO) << frame << " no-emit tok context state id: " << e->val->context_state_id;
   }
 
   while (!queue_.empty()) {
@@ -880,11 +1021,35 @@ void LatticeFasterDecoderTpl<FST, Token>::ProcessNonemitting(BaseFloat cutoff) {
         if (tot_cost < cutoff) {
           bool changed;
 
+         LOG(INFO) << frame << " token & token next context state id: " << tok << " " << tok->context_state_id << " " << graph_cost;
           Elem *e_new = FindOrAddToken(arc.nextstate, frame + 1, tot_cost,
                                           tok, &changed);
 
           tok->links = new (forward_link_pool_.Allocate()) ForwardLinkT(
               e_new->val, 0, arc.olabel, graph_cost, 0, tok->links);
+        
+        LOG(INFO) << "no-emit: " << frame << " olabel: " << arc.olabel << " change: " << changed;
+        ProcessContextBias(tok, tok->links, arc.olabel, &changed);
+        
+
+
+          //if (context_fst_ != NULL) {
+              //StateId state = tok->context_state_id;
+              //bool match_flag2 = false;
+              //for (fst::ArcIterator<FST> aiter2(*context_fst_, state); 
+                   //!aiter2.Done(); aiter2.Next()) {
+                  //const Arc &arc_context = aiter2.Value();
+                  //if (arc.olabel == arc_context.ilabel) {
+                    //LOG(INFO) << "bias match: " << word_symbol_table_->Find(arc_context.ilabel);
+                    //tok->links->graph_cost += arc_context.weight.Value();
+                    //tok->links->next_tok->tot_cost += arc_context.weight.Value();
+                    //tok->links->next_tok->context_state_id = arc_context.nextstate;
+                    //LOG(INFO) << "match cost: " << tok->links->next_tok->tot_cost; 
+                    //match_flag2 = true;
+                  //}
+              //}
+              //if (!match_flag2) tok->links->next_tok->context_state_id = 0;
+          //}
 
           // "changed" tells us whether the new token has a different
           // cost from before, or is new [if so, add into queue].
@@ -894,6 +1059,7 @@ void LatticeFasterDecoderTpl<FST, Token>::ProcessNonemitting(BaseFloat cutoff) {
       }
     } // for all arcs
   } // while queue not empty
+
 }
 
 

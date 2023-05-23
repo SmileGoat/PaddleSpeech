@@ -137,6 +137,7 @@ struct ForwardLink {
 struct StdToken {
   using ForwardLinkT = ForwardLink<StdToken>;
   using Token = StdToken;
+  using StateId = fst::StdArc::StateId;
 
   // Standard token type for LatticeFasterDecoder.  Each active HCLG
   // (decoding-graph) state on each frame has one token.
@@ -160,6 +161,10 @@ struct StdToken {
 
   //'next' is the next in the singly-linked list of tokens for this frame.
   Token *next;
+  Token *backpointer;
+  
+  // context_graph state id
+  StateId context_state_id;
 
   // This function does nothing and should be optimized out; it's needed
   // so we can share the regular LatticeFasterDecoderTpl code and the code
@@ -171,13 +176,15 @@ struct StdToken {
   // and LatticeFasterOnlineDecoderTpl (which needs backpointers to support a
   // fast way to obtain the best path).
   inline StdToken(BaseFloat tot_cost, BaseFloat extra_cost, ForwardLinkT *links,
-                  Token *next, Token *backpointer):
-      tot_cost(tot_cost), extra_cost(extra_cost), links(links), next(next) { }
+                  Token *next, Token *backpointer, StateId context_state_id):
+      tot_cost(tot_cost), extra_cost(extra_cost), links(links), next(next), 
+      context_state_id(context_state_id) { }
 };
 
 struct BackpointerToken {
   using ForwardLinkT = ForwardLink<BackpointerToken>;
   using Token = BackpointerToken;
+  using StateId = fst::StdArc::StateId;
 
   // BackpointerToken is like Token but also
   // Standard token type for LatticeFasterDecoder.  Each active HCLG
@@ -210,14 +217,17 @@ struct BackpointerToken {
   // (the "links" list is what stores the forward links, for that).
   Token *backpointer;
 
+  // context_graph state id
+  StateId context_state_id;
+
   inline void SetBackpointer (Token *backpointer) {
     this->backpointer = backpointer;
   }
 
   inline BackpointerToken(BaseFloat tot_cost, BaseFloat extra_cost, ForwardLinkT *links,
-                          Token *next, Token *backpointer):
+                          Token *next, Token *backpointer, StateId context_state_id):
       tot_cost(tot_cost), extra_cost(extra_cost), links(links), next(next),
-      backpointer(backpointer) { }
+      backpointer(backpointer), context_state_id(context_state_id) { }
 };
 
 }  // namespace decoder
@@ -251,12 +261,13 @@ class LatticeFasterDecoderTpl {
   // This version of the constructor does not take ownership of
   // 'fst'.
   LatticeFasterDecoderTpl(const FST &fst,
+                          const FST &context_fst,
                           const LatticeFasterDecoderConfig &config);
 
   // This version of the constructor takes ownership of the fst, and will delete
   // it when this object is destroyed.
   LatticeFasterDecoderTpl(const LatticeFasterDecoderConfig &config,
-                          FST *fst);
+                          FST *fst, FST* context_fst);
 
   void SetOptions(const LatticeFasterDecoderConfig &config) {
     config_ = config;
@@ -265,6 +276,9 @@ class LatticeFasterDecoderTpl {
   const LatticeFasterDecoderConfig &GetOptions() const {
     return config_;
   }
+
+  void ProcessContextBias(Token* backpointer, ForwardLinkT* link, fst::StdArc::Label olabel, bool* changed = NULL);
+  void PrintBestPathInfo() const;
 
   ~LatticeFasterDecoderTpl();
 
@@ -483,6 +497,9 @@ class LatticeFasterDecoderTpl {
   // object is destroyed.
   bool delete_fst_;
 
+  // context_fst_ is a pointer to bias graph.
+  const FST* context_fst_;
+
   std::vector<BaseFloat> cost_offsets_; // This contains, for each
   // frame, an offset that was added to the acoustic log-likelihoods on that
   // frame in order to keep everything in a nice dynamic range i.e.  close to
@@ -511,6 +528,10 @@ class LatticeFasterDecoderTpl {
   // bigger ones increase the memory usage.
   fst::MemoryPool<Token> token_pool_;
   fst::MemoryPool<ForwardLinkT> forward_link_pool_;
+
+  // test
+  std::shared_ptr<fst::SymbolTable> word_symbol_table_;
+  std::shared_ptr<fst::SymbolTable> word_symbol_table2_;
 
   // There are various cleanup tasks... the toks_ structure contains
   // singly linked lists of Token pointers, where Elem is the list type.
